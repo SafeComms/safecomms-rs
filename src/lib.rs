@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
 
-const DEFAULT_BASE_URL: &str = "https://safecomms.dev/api/v1/public";
+const DEFAULT_BASE_URL: &str = "https://api.safecomms.dev";
 
 #[derive(Error, Debug)]
 pub enum SafeCommsError {
