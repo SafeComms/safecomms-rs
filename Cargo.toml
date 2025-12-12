@@ -6,6 +6,7 @@ description = "Official Rust SDK for SafeComms API"
 license = "MIT"
 homepage = "https://safecomms.dev"
 repository = "https://github.com/SafeComms/safecomms-rs/"
+readme = "README.md"
 keywords = ["content-moderation", "sdk"]
 
 [dependencies]
