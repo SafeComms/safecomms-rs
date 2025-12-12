@@ -1,6 +1,7 @@
-use reqwest::Client as HttpClient;
+use reqwest::{Client as HttpClient, multipart};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::Path;
 use thiserror::Error;
 
 const DEFAULT_BASE_URL: &str = "https://api.safecomms.dev";
@@ -33,6 +34,15 @@ pub struct TextModerationRequest<'a> {
     pub pii: Option<bool>,
     #[serde(rename = "replaceSeverity", skip_serializing_if = "Option::is_none")]
     pub replace_severity: Option<&'a str>,
+    #[serde(rename = "moderationProfileId", skip_serializing_if = "Option::is_none")]
+    pub moderation_profile_id: Option<&'a str>,
+}
+
+#[derive(Serialize)]
+pub struct ImageModerationRequest<'a> {
+    pub image: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<&'a str>,
     #[serde(rename = "moderationProfileId", skip_serializing_if = "Option::is_none")]
     pub moderation_profile_id: Option<&'a str>,
 }
@@ -127,6 +137,84 @@ impl SafeCommsClient {
             let error_text = response.text().await?;
             
             // Try to parse ProblemDetails
+            if let Ok(problem) = serde_json::from_str::<ProblemDetails>(&error_text) {
+                return Err(SafeCommsError::ApiError(
+                    problem.detail.or(problem.title).unwrap_or_else(|| status.to_string())
+                ));
+            }
+            
+            return Err(SafeCommsError::ApiError(format!("{} - {}", status, error_text)));
+        }
+
+        let result = response.json::<ModerationResponse>().await?;
+        Ok(result)
+    }
+
+    pub async fn moderate_image(
+        &self,
+        request: ImageModerationRequest<'_>,
+    ) -> Result<ModerationResponse, SafeCommsError> {
+        let response = self.client
+            .post(format!("{}/moderation/image", self.base_url))
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .json(&request)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().await?;
+            
+            if let Ok(problem) = serde_json::from_str::<ProblemDetails>(&error_text) {
+                return Err(SafeCommsError::ApiError(
+                    problem.detail.or(problem.title).unwrap_or_else(|| status.to_string())
+                ));
+            }
+            
+            return Err(SafeCommsError::ApiError(format!("{} - {}", status, error_text)));
+        }
+
+        let result = response.json::<ModerationResponse>().await?;
+        Ok(result)
+    }
+
+    pub async fn moderate_image_file(
+        &self,
+        file_path: &str,
+        language: Option<&str>,
+        moderation_profile_id: Option<&str>,
+    ) -> Result<ModerationResponse, SafeCommsError> {
+        let file_bytes = tokio::fs::read(file_path).await
+            .map_err(|e| SafeCommsError::ApiError(format!("Failed to read file: {}", e)))?;
+        
+        let file_name = Path::new(file_path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("image.jpg")
+            .to_string();
+
+        let mut form = multipart::Form::new()
+            .part("image", multipart::Part::bytes(file_bytes).file_name(file_name));
+
+        if let Some(lang) = language {
+            form = form.text("language", lang.to_string());
+        }
+        
+        if let Some(profile_id) = moderation_profile_id {
+            form = form.text("moderationProfileId", profile_id.to_string());
+        }
+
+        let response = self.client
+            .post(format!("{}/moderation/image/upload", self.base_url))
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .multipart(form)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().await?;
+            
             if let Ok(problem) = serde_json::from_str::<ProblemDetails>(&error_text) {
                 return Err(SafeCommsError::ApiError(
                     problem.detail.or(problem.title).unwrap_or_else(|| status.to_string())
