@@ -2,6 +2,11 @@
 
 Official Rust client for the SafeComms API.
 
+SafeComms is a powerful content moderation platform designed to keep your digital communities safe. It provides real-time analysis of text to detect and filter harmful content, including hate speech, harassment, and spam.
+
+**Get Started for Free:**
+We offer a generous **Free Tier** for all users, with **no credit card required**. Sign up today and start protecting your community immediately.
+
 ## Installation
 
 Add this to your `Cargo.toml`:
