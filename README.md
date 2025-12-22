@@ -7,6 +7,10 @@ SafeComms is a powerful content moderation platform designed to keep your digita
 **Get Started for Free:**
 We offer a generous **Free Tier** for all users, with **no credit card required**. Sign up today and start protecting your community immediately.
 
+## Documentation
+
+For full API documentation and integration guides, visit [https://safecomms.dev/docs](https://safecomms.dev/docs).
+
 ## Installation
 
 Add this to your `Cargo.toml`:

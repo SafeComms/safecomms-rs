@@ -45,6 +45,12 @@ pub struct ImageModerationRequest<'a> {
     pub language: Option<&'a str>,
     #[serde(rename = "moderationProfileId", skip_serializing_if = "Option::is_none")]
     pub moderation_profile_id: Option<&'a str>,
+    #[serde(rename = "enableOcr", skip_serializing_if = "Option::is_none")]
+    pub enable_ocr: Option<bool>,
+    #[serde(rename = "enhancedOcr", skip_serializing_if = "Option::is_none")]
+    pub enhanced_ocr: Option<bool>,
+    #[serde(rename = "extractMetadata", skip_serializing_if = "Option::is_none")]
+    pub extract_metadata: Option<bool>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -183,6 +189,9 @@ impl SafeCommsClient {
         file_path: &str,
         language: Option<&str>,
         moderation_profile_id: Option<&str>,
+        enable_ocr: Option<bool>,
+        enhanced_ocr: Option<bool>,
+        extract_metadata: Option<bool>,
     ) -> Result<ModerationResponse, SafeCommsError> {
         let file_bytes = tokio::fs::read(file_path).await
             .map_err(|e| SafeCommsError::ApiError(format!("Failed to read file: {}", e)))?;
@@ -202,6 +211,18 @@ impl SafeCommsClient {
         
         if let Some(profile_id) = moderation_profile_id {
             form = form.text("moderationProfileId", profile_id.to_string());
+        }
+
+        if let Some(enable) = enable_ocr {
+            form = form.text("enableOcr", enable.to_string());
+        }
+
+        if let Some(enhanced) = enhanced_ocr {
+            form = form.text("enhancedOcr", enhanced.to_string());
+        }
+
+        if let Some(extract) = extract_metadata {
+            form = form.text("extractMetadata", extract.to_string());
         }
 
         let response = self.client
